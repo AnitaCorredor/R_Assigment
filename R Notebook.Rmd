@@ -9,6 +9,7 @@ This is the [R Assigment](https://github.com/AnitaCorredor/R_assigment) Notebook
 
 ```{r}
 library(readr)
+
 fang_et_al_genotypes <- read_delim("~/Documents/r_assigment/fang_et_al_genotypes.txt", 
                                    "\t", escape_double = FALSE, trim_ws = TRUE)
 
