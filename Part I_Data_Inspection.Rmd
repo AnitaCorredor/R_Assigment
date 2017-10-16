@@ -1,0 +1,169 @@
+# Part I
+
+# DATA INSPECTION
+
+## data inspection for Genotypes
+
+```{r}
+nrow(fang_et_al_genotypes)
+ncol(fang_et_al_genotypes)
+dim(fang_et_al_genotypes)
+colnames(fang_et_al_genotypes)
+str(fang_et_al_genotypes)
+```
+
+## data inspection for SNP_positions
+
+```{r}
+nrow(snp_position)
+ncol(snp_position)
+dim(snp_position)
+colnames(snp_position)
+str(snp_position)
+```
+# Part I
+# DATA PROCESSING
+
+## Joining groups required for maize
+
+```{r}
+maize<- subset(fang_et_al_genotypes, Group == 'ZMMIL' | Group =='ZMMLR' | Group == 'ZMMMR') 
+```
+
+* I delete columns which are not required and transpose the data set
+
+```{r}
+cmaize<-(maize[,-(2:3)])
+tmaize<-as.data.frame(t(cmaize))
+```
+
+* In order to joint the information I created a column whit the SNP IDs
+
+```{r}
+tmaize$ID <- rownames(tmaize)
+```
+
+## Joining groups required for teosinte
+
+```{r}
+teosinte<- subset(fang_et_al_genotypes, Group == 'ZMPBA' | Group =='ZMPIL' | Group == 'ZMPJA') 
+```
+
+* I delete columns which are not required and transpose the data set
+
+```{r}
+cteosinte<-(teosinte[,-(2:3)])
+tteosinte<-as.data.frame(t(cteosinte))
+```
+
+* In order to joint the information I created a column whit the SNP IDs
+
+```{r}
+tteosinte$ID <- rownames(tteosinte)
+```
+
+* organizing SNP information
+
+```{r}
+snp<-(snp_position[,c(1,3,4)])
+```
+
+* Joining SNP and Maize genotype information
+
+```{r}
+jointmaize <- merge(snp, tmaize, by.x='SNP_ID', by.y='ID')
+jointmaize
+```
+
+## Joining SNP and Teosinte genotype information
+
+```{r}
+jointteosinte <- merge(snp, tteosinte, by.x='SNP_ID', by.y='ID')
+jointteosinte
+```
+
+* maize sort by increasing
+
+```{r}
+incmaize<-jointmaize[order(as.numeric(as.character(jointmaize$Position))),]
+
+```
+
+* reeplace values ?/?
+
+```{r}
+incmaize[incmaize == "?/?"] <- "?"
+```
+
+* create increasing files
+
+```{r}
+for (i in 1:10){
+  maize_files<-incmaize[incmaize$Chromosome==i,]
+  write.csv(maize_files,sprintf("increasing_Chr_%d_maize",i),row.names = F)
+}
+```
+
+* maize sort by decreasing
+
+```{r}
+decmaize<-jointmaize[order(-as.numeric(as.character(jointmaize$Position))),]
+```
+
+* reeplace values ?/?
+
+```{r}
+decmaize[decmaize == "?/?"] <- "-"
+```
+
+* create decreasing files
+
+```{r}
+for (i in 1:10){
+  maize_files<-decmaize[decmaize$Chromosome==i,]
+  write.csv(maize_files,sprintf("decreasing_Chr_%d_maize",i),row.names = F)
+}
+```
+
+* teosinte sort by increasing
+
+```{r}
+incteosinte<-jointteosinte[order(as.numeric(as.character(jointteosinte$Position))),]
+```
+
+* reeplace values ?/?
+
+```{r}
+incteosinte[incteosinte == "?/?"] <- "?"
+```
+
+* create increasing files
+
+```{r}
+for (i in 1:10){
+  teosinte_files<-incteosinte[incteosinte$Chromosome==i,]
+  write.csv(teosinte_files,sprintf("increasing_Chr_%d_teosinte",i),row.names = F)
+}
+```
+
+* teosinte sort by decreasing
+
+```{r}
+decteosinte<-jointteosinte[order(-as.numeric(as.character(jointteosinte$Position))),]
+```
+
+* reeplace values ?/?
+
+```{r}
+decteosinte[decteosinte == "?/?"] <- "-"
+
+```
+
+* create decreasing files
+
+```{r}
+for (i in 1:10){
+  teosinte_files<-decteosinte[decteosinte$Chromosome==i,]
+  write.csv(teosinte_files,sprintf("decreasing_Chr_%d_teosinte",i),row.names = F)
+}
+```
