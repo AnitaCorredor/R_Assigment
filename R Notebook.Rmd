@@ -1,0 +1,302 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is the [R Assigment](https://github.com/AnitaCorredor/R_assigment) Notebook for BCB546X. 
+
+## Reading the original data files
+
+```{r}
+library(readr)
+fang_et_al_genotypes <- read_delim("~/Documents/r_assigment/fang_et_al_genotypes.txt", 
+                                   "\t", escape_double = FALSE, trim_ws = TRUE)
+
+snp_position <- read_delim("~/Documents/r_assigment/snp_position.txt", 
+                           "\t", escape_double = FALSE, trim_ws = TRUE)
+```
+
+# Part I
+
+# Data Inspection
+
+## data inspection for Genotypes
+
+```{r}
+nrow(fang_et_al_genotypes)
+ncol(fang_et_al_genotypes)
+dim(fang_et_al_genotypes)
+colnames(fang_et_al_genotypes)
+str(fang_et_al_genotypes)
+```
+
+## data inspection for SNP_positions
+
+```{r}
+nrow(snp_position)
+ncol(snp_position)
+dim(snp_position)
+colnames(snp_position)
+str(snp_position)
+```
+
+# Part II 
+# DATA PROCESSING
+
+## Joining groups required for maize
+
+```{r}
+maize<- subset(fang_et_al_genotypes, Group == 'ZMMIL' | Group =='ZMMLR' | Group == 'ZMMMR') 
+```
+
+* I delete columns which are not required and transpose the data set
+
+```{r}
+cmaize<-(maize[,-(2:3)])
+tmaize<-as.data.frame(t(cmaize))
+```
+
+* In order to joint the information I created a column whit the SNP IDs
+
+```{r}
+tmaize$ID <- rownames(tmaize)
+```
+
+## Joining groups required for teosinte
+
+```{r}
+teosinte<- subset(fang_et_al_genotypes, Group == 'ZMPBA' | Group =='ZMPIL' | Group == 'ZMPJA') 
+```
+
+* I delete columns which are not required and transpose the data set
+
+```{r}
+cteosinte<-(teosinte[,-(2:3)])
+tteosinte<-as.data.frame(t(cteosinte))
+```
+
+* In order to joint the information I created a column whit the SNP IDs
+
+```{r}
+tteosinte$ID <- rownames(tteosinte)
+```
+
+* organizing SNP information
+
+```{r}
+snp<-(snp_position[,c(1,3,4)])
+```
+
+* Joining SNP and Maize genotype information
+
+```{r}
+jointmaize <- merge(snp, tmaize, by.x='SNP_ID', by.y='ID')
+jointmaize
+```
+
+## Joining SNP and Teosinte genotype information
+
+```{r}
+jointteosinte <- merge(snp, tteosinte, by.x='SNP_ID', by.y='ID')
+jointteosinte
+```
+
+* maize sort by increasing
+
+```{r}
+incmaize<-jointmaize[order(as.numeric(as.character(jointmaize$Position))),]
+
+```
+
+* reeplace values ?/?
+
+```{r}
+incmaize[incmaize == "?/?"] <- "?"
+```
+
+* create increasing files
+
+```{r}
+for (i in 1:10){
+  maize_files<-incmaize[incmaize$Chromosome==i,]
+  write.csv(maize_files,sprintf("increasing_Chr_%d_maize",i),row.names = F)
+}
+```
+
+* maize sort by decreasing
+
+```{r}
+decmaize<-jointmaize[order(-as.numeric(as.character(jointmaize$Position))),]
+```
+
+* reeplace values ?/?
+
+```{r}
+decmaize[decmaize == "?/?"] <- "-"
+```
+
+* create decreasing files
+
+```{r}
+for (i in 1:10){
+  maize_files<-decmaize[decmaize$Chromosome==i,]
+  write.csv(maize_files,sprintf("decreasing_Chr_%d_maize",i),row.names = F)
+}
+```
+
+* teosinte sort by increasing
+
+```{r}
+incteosinte<-jointteosinte[order(as.numeric(as.character(jointteosinte$Position))),]
+```
+
+* reeplace values ?/?
+
+```{r}
+incteosinte[incteosinte == "?/?"] <- "?"
+```
+
+* create increasing files
+
+```{r}
+for (i in 1:10){
+  teosinte_files<-incteosinte[incteosinte$Chromosome==i,]
+  write.csv(teosinte_files,sprintf("increasing_Chr_%d_teosinte",i),row.names = F)
+}
+```
+
+* teosinte sort by decreasing
+
+```{r}
+decteosinte<-jointteosinte[order(-as.numeric(as.character(jointteosinte$Position))),]
+```
+
+* reeplace values ?/?
+
+```{r}
+decteosinte[decteosinte == "?/?"] <- "-"
+
+```
+
+* create decreasing files
+
+```{r}
+for (i in 1:10){
+  teosinte_files<-decteosinte[decteosinte$Chromosome==i,]
+  write.csv(teosinte_files,sprintf("decreasing_Chr_%d_teosinte",i),row.names = F)
+}
+```
+
+
+# PART II VISUALIZATION
+
+## installing the necesaries packages
+
+```{r}
+if (!require("reshape2")) install.packages("reshape2")
+library("reshape2")
+if (!require("ggplot2")) install.packages("ggplot2")
+library(ggplot2)
+if (!require("plyr")) install.packages("plyr")
+library(plyr)
+```
+
+# SNP PER CHROMOSOME
+I look for the answer of *"what groups contributed more?"*
+
+* creating a new data set, joining snp data to genotypes data
+```{r}
+joinedGenotype_SNP <- merge(snp_position, t(fang_et_al_genotypes), by.x = "SNP_ID", by.y = "row.names")
+```
+
+* enumerate chromosomes
+```{r}
+joinedGenotype_SNP$Chromosome<-factor(joinedGenotype_SNP$Chromosome,
+                                      levels = c((1:10), "multiple", "unknown", "NA") )
+```
+
+* Count of SNP by Chromosome
+
+```{r}
+ggplot(joinedGenotype_SNP, aes(Chromosome)) + geom_bar()
+```
+
+## *what groups contributed more?"*
+
+```{r}
+ggplot(fang_et_al_genotypes, aes(Group)) +  geom_bar()
+```
+* the graph clearly shows that in order of importance ZMMLR, ZMPBA and ZMMIL groups contributed more 
+
+## MISISNG DATA AND AMOUNT OF HETEROZYGOCITY
+
+* I want just the genotypes, so I discard the three first informative columns
+
+```{r}
+genotypes<- colnames(fang_et_al_genotypes)[-c(1:3)]
+```
+
+* using melt function and rearrange by SNP's IDs
+
+```{r}
+genotypes.m <- melt(fang_et_al_genotypes, measure.vars = genotypes)
+```
+
+* recoding missing data ?/? as NA's
+
+```{r}
+genotypes.m[ genotypes.m == "?/?" ] = NA
+```
+
+* Creating a new column to indicate whether a particular site is homozygous
+
+```{r}
+genotypes.m$isHomozygous <- (genotypes.m$value=="A/A" | genotypes.m$value=="C/C" | genotypes.m$value=="G/G" | genotypes.m$value=="T/T")
+```
+
+* Sorting dataframe using Group and Species_ID values
+
+```{r}
+genotypes_ID <- genotypes.m[order(genotypes.m$Sample_ID),]
+genotypes_Group <- genotypes.m[order(genotypes.m$Group),]
+```
+
+
+* Counting Homozygous and Heterozygous
+
+```{r}
+proportions_ID <- ddply(genotypes_ID, c("Sample_ID"), summarise, Homozygous=sum(isHomozygous, na.rm=TRUE), 
+                     Heterozygous=sum(!isHomozygous, na.rm=TRUE), isNA=sum(is.na(isHomozygous)))
+```
+
+
+* using melt function 
+```{r}
+proportions_ID.m <- melt(proportions_ID, measure.vars = c("Homozygous", "Heterozygous", "isNA"))
+```
+
+
+* graph that shows the proportion of homozygous and heterozygous sites as well as missing data in each species 
+```{r}
+ggplot(proportions_ID.m,aes(x = Sample_ID, y= value, fill=variable)) + geom_bar(stat = "identity", position = "stack")
+```
+
+* The same process is made when the data is sorted for groups:
+
+```{r}
+proportions_Group <- ddply(genotypes_Group, c("Group"), summarise, Homozygous=sum(isHomozygous, na.rm=TRUE), Heterozygous=sum(!isHomozygous, na.rm=TRUE), isNA=sum(is.na(isHomozygous)))
+
+proportions_Group.m <- melt(proportions_Group, measure.vars = c("Homozygous", "Heterozygous", "isNA"))
+```
+
+```{r}
+ggplot(proportions_Group.m,aes(x = Group, y= value, fill=variable)) + geom_bar(stat = "identity", position = "stack")
+
+```
+* Finally I proposed a scaterplot to see the distribution of the SNP on the cromosomes 
+
+```{r}
+p <- ggplot(joinedGenotype_SNP, aes(x=SNP_ID, y=Chromosome)) + geom_point(size=1, color="black")
+
+print(p)
+```
